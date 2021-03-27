@@ -1,12 +1,31 @@
+import axios from 'axios';
 import { logger } from './logger';
 import { scanner } from './scanner';
 
 export class Scraper {
-  constructor() {
-    logger.info('Scaper running!');
+  private readonly BASE_URL = 'https://finance.yahoo.com/quote/';
 
-    scanner.question('Enter a stock symbol: ', (input: string) => {
-      logger.info('Input received:', input);
+  constructor() {
+    logger.info('Scraper running!');
+
+    const AxiosInstance = axios.create(); // Create a new Axios Instance
+
+    scanner.question('Enter a stock symbol: ', async (symbol) => {
+      logger.info('Input received:', symbol);
+
+      let html = '';
+
+      try {
+        logger.info(`Scraping HTML for stock symbol '${symbol}'...`);
+
+        const response = await AxiosInstance.get(`${this.BASE_URL}${symbol}`);
+        html = response.data;
+
+        logger.info(html);
+      } catch (e: unknown) {
+        logger.error(e);
+      }
+
       scanner.close();
     });
   }

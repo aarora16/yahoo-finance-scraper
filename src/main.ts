@@ -1,4 +1,4 @@
-import { Scraper } from './scraper';
+import { Scraper } from './utils/scraper';
 
 // eslint-disable-next-line no-unused-vars
 const s = new Scraper();
