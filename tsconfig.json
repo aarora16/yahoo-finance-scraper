@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "strictNullChecks": true,
     "strict": true,
     "allowJs": false,
     "module": "commonjs",
