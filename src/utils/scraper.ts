@@ -1,32 +1,40 @@
 import axios from 'axios';
 import { logger } from './logger';
-import { scanner } from './scanner';
 
 export class Scraper {
-  private readonly BASE_URL = 'https://finance.yahoo.com/quote/';
+  private static readonly BASE_URL = 'https://finance.yahoo.com/quote/';
 
-  constructor() {
+  private static stockSymbol: string;
+
+  private static client = axios.create();
+
+  constructor(stockSymbol: string) {
+    logger.info(stockSymbol);
+    Scraper.stockSymbol = stockSymbol;
+    Scraper.run();
+  }
+
+  private static async run() {
     logger.info('Scraper running!');
+    const html = await this.requestHTML();
+    // const quoteSummaryDOM = this.parseHTML(html);
+    // logger.info(quoteSummaryDOM);
+  }
 
-    const AxiosInstance = axios.create(); // Create a new Axios Instance
+  private static parseHTML(html: string) {}
 
-    scanner.question('Enter a stock symbol: ', async (symbol) => {
-      logger.info('Input received:', symbol);
+  private static async requestHTML(): Promise<string> {
+    try {
+      logger.info(`Scraping HTML for stock symbol '${this.stockSymbol}'...`);
+      const { data } = await this.client.get(
+        `${this.BASE_URL}${this.stockSymbol}`,
+      );
+      logger.info(data);
+      return data;
+    } catch (e: unknown) {
+      logger.error(e);
+    }
 
-      let html = '';
-
-      try {
-        logger.info(`Scraping HTML for stock symbol '${symbol}'...`);
-
-        const response = await AxiosInstance.get(`${this.BASE_URL}${symbol}`);
-        html = response.data;
-
-        logger.info(html);
-      } catch (e: unknown) {
-        logger.error(e);
-      }
-
-      scanner.close();
-    });
+    return '';
   }
 }
