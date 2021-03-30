@@ -43,7 +43,13 @@ module.exports = {
         endOfLine: 'auto',
       },
     ],
-    'no-unused-vars': 'warn',
+    'no-unused-vars': [
+      'warn',
+      {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+      },
+    ],
   },
   ignorePatterns: ['dist/**', 'coverage/**'],
 };
