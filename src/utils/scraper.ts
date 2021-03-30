@@ -8,11 +8,11 @@ export class Scraper {
 
   private static client = axios.create();
 
-  public static async run(stockSymbol: string) {
+  public static async fetch(stockSymbol: string) {
     logger.info('Scraper running!');
     const html = await this.requestHTML(stockSymbol);
     const stockData = this.parseHTML(html);
-    logger.info(stockData);
+    return stockData;
   }
 
   private static parseHTML(html: string) {
@@ -32,7 +32,7 @@ export class Scraper {
     const currentPrice = getText(headerInfo, `span[data-reactid='50']`);
 
     const dayChangeText = getText(headerInfo, `span[data-reactid='51']`);
-    const dayChangeMatch = dayChangeText.match(/(\+.+)\s\((\+.+%)\)/);
+    const dayChangeMatch = dayChangeText.match(/(.+)\s\((.+%)\)/);
     const [_, dayChangeDollar, dayChangePercent] = dayChangeMatch ?? [
       '',
       'N/A',
