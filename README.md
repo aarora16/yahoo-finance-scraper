@@ -16,3 +16,8 @@ Run `npm start` to use the application
 | `npm run build`  | Build the typescript code.             |
 | `npm run lint`   | Runs the linter on the code.           |
 | `npm run format` | Fixes most lint errors using Prettier. |
+
+NOTES:
+
+- stock name
+  - #quote-header-info > data-reactid="7"

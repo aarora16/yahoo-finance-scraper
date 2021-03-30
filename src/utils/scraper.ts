@@ -1,4 +1,6 @@
 import axios from 'axios';
+import cheerio from 'cheerio';
+import { StockData } from '../typings/stock-data';
 import { logger } from './logger';
 
 export class Scraper {
@@ -9,7 +11,6 @@ export class Scraper {
   private static client = axios.create();
 
   constructor(stockSymbol: string) {
-    logger.info(stockSymbol);
     Scraper.stockSymbol = stockSymbol;
     Scraper.run();
   }
@@ -17,11 +18,53 @@ export class Scraper {
   private static async run() {
     logger.info('Scraper running!');
     const html = await this.requestHTML();
-    // const quoteSummaryDOM = this.parseHTML(html);
-    // logger.info(quoteSummaryDOM);
+    const stockData = this.parseHTML(html);
+    logger.info(stockData);
   }
 
-  private static parseHTML(html: string) {}
+  private static parseHTML(html: string): StockData {
+    const DOM = cheerio.load(html);
+    const stockData = {} as StockData;
+
+    const headerInfo = DOM(`#quote-header-info`);
+    const quoteSummary = DOM('#quote-summary');
+
+    const getText = (dom: unknown, context: string) => {
+      return DOM(dom).find(context).text();
+    };
+
+    stockData.name = getText(headerInfo, `h1[data-reactid='7']`);
+
+    const symbol = stockData.name.match(/\(.+\)/);
+    stockData.symbol = symbol !== null ? symbol[0].slice(1, -1) : 'N/A';
+
+    stockData.currentPrice = getText(headerInfo, `span[data-reactid='50']`);
+
+    const dayChange = getText(headerInfo, `span[data-reactid='51']`)
+      .replace('(', '')
+      .replace(')', '')
+      .split(' ');
+    [stockData.dayChangeDollar, stockData.dayChangePercent] = dayChange;
+
+    stockData.previousClosePrice = getText(
+      quoteSummary,
+      `[data-test="PREV_CLOSE-value"]`,
+    );
+
+    stockData.openPrice = getText(quoteSummary, `[data-test="OPEN-value"]`);
+
+    stockData.dayRange = getText(
+      quoteSummary,
+      `[data-test="DAYS_RANGE-value"]`,
+    );
+
+    stockData.yearRange = getText(
+      quoteSummary,
+      `[data-test="FIFTY_TWO_WK_RANGE-value"]`,
+    );
+
+    return stockData;
+  }
 
   private static async requestHTML(): Promise<string> {
     try {
@@ -29,12 +72,11 @@ export class Scraper {
       const { data } = await this.client.get(
         `${this.BASE_URL}${this.stockSymbol}`,
       );
-      logger.info(data);
+      // logger.info(data);
       return data;
     } catch (e: unknown) {
       logger.error(e);
     }
-
     return '';
   }
 }
