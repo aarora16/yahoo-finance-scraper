@@ -2,6 +2,7 @@ import axios from 'axios';
 import cheerio from 'cheerio';
 import { StockData } from '../typings/stock-data';
 import { logger } from './logger';
+import { dataTest } from '../typings/data-test-enums';
 
 export class Scraper {
   private static readonly BASE_URL = 'https://finance.yahoo.com/quote/';
@@ -19,19 +20,23 @@ export class Scraper {
     const DOM = cheerio.load(html);
 
     const headerInfo = DOM(`#quote-header-info`);
-    const quoteSummary = DOM('#quote-summary');
+    const marketNoticeNode = DOM(`#quote-market-notice`);
+    const leftTable = DOM(`${dataTest[1]}`);
+    const rightTable = DOM(`${dataTest[2]}`);
+    const fairValueNode = DOM(`#fr-val-mod`);
+    const chartEventNode = DOM(`#chrt-evts-mod`);
 
     const getText = (dom: unknown, context: string) =>
       DOM(dom).find(context).text();
 
-    const name = getText(headerInfo, `h1[data-reactid='7']`);
+    const name = getText(headerInfo, `h1`);
 
     // if it exists, return first idx, otherwise N/A
     const symbol = name.match(/\((.+)\)/)?.[1] ?? 'N/A';
 
-    const currentPrice = getText(headerInfo, `span[data-reactid='50']`);
+    const currentPrice = marketNoticeNode.prev().prev().text();
 
-    const dayChangeText = getText(headerInfo, `span[data-reactid='51']`);
+    const dayChangeText = marketNoticeNode.prev().text();
     const dayChangeMatch = dayChangeText.match(/(.+)\s\((.+%)\)/);
     const [_, dayChangeDollar, dayChangePercent] = dayChangeMatch ?? [
       '',
@@ -39,19 +44,50 @@ export class Scraper {
       'N/A',
     ];
 
-    const previousClosePrice = getText(
-      quoteSummary,
-      `[data-test="PREV_CLOSE-value"]`,
-    );
+    // Left Table
 
-    const openPrice = getText(quoteSummary, `[data-test="OPEN-value"]`);
+    const previousClosePrice = getText(leftTable, `${dataTest[3]}`);
 
-    const dayRange = getText(quoteSummary, `[data-test="DAYS_RANGE-value"]`);
+    const openPrice = getText(leftTable, `${dataTest[4]}`);
 
-    const yearRange = getText(
-      quoteSummary,
-      `[data-test="FIFTY_TWO_WK_RANGE-value"]`,
-    );
+    const bidPrice = getText(leftTable, `${dataTest[5]}`);
+
+    const askPrice = getText(leftTable, `${dataTest[6]}`);
+
+    const dayRange = getText(leftTable, `${dataTest[7]}`);
+
+    const yearRange = getText(leftTable, `${dataTest[8]}`);
+
+    const volume = getText(leftTable, `${dataTest[9]}`);
+
+    const avgVolume = getText(leftTable, `${dataTest[10]}`);
+
+    // Right Table
+
+    const marketCap = getText(rightTable, `${dataTest[11]}`);
+
+    const fiveYearMonthly = getText(rightTable, `${dataTest[12]}`);
+
+    const peRatio = getText(rightTable, `${dataTest[13]}`);
+
+    const eps = getText(rightTable, `${dataTest[14]}`);
+
+    const earningsDate = getText(rightTable, `${dataTest[15]}`);
+
+    const forwardDividend = getText(rightTable, `${dataTest[16]}`);
+
+    const exDividendDate = getText(rightTable, `${dataTest[17]}`);
+
+    const oneYearTarget = getText(rightTable, `${dataTest[18]}`);
+
+    // Other Values
+
+    const fairValue = getText(fairValueNode, `div:contains('XX'):lt(1)`).split('XX')[2];
+
+    const patternDetectedNode = chartEventNode.find(`span:contains('pattern detected')`);
+    const chartEventValue = patternDetectedNode.prev().text();
+
+    // Stock Data
 
     const stockData: StockData = {
       name,
@@ -61,8 +97,22 @@ export class Scraper {
       dayChangePercent,
       previousClosePrice,
       openPrice,
+      bidPrice,
+      askPrice,
       dayRange,
       yearRange,
+      volume,
+      avgVolume,
+      marketCap,
+      fiveYearMonthly,
+      peRatio,
+      eps,
+      earningsDate,
+      forwardDividend,
+      exDividendDate,
+      oneYearTarget,
+      fairValue,
+      chartEventValue,
     };
 
     return stockData;
