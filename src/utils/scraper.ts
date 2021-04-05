@@ -1,8 +1,8 @@
 import axios from 'axios';
 import cheerio from 'cheerio';
+import { DomIds } from '../typings/dom-ids-enums';
 import { StockData } from '../typings/stock-data';
 import { logger } from './logger';
-import { dataTest } from '../typings/data-test-enums';
 
 export class Scraper {
   private static readonly BASE_URL = 'https://finance.yahoo.com/quote/';
@@ -11,20 +11,22 @@ export class Scraper {
 
   public static async fetch(stockSymbol: string) {
     logger.info('Scraper running!');
+
     const html = await this.requestHTML(stockSymbol);
     const stockData = this.parseHTML(html);
     return stockData;
   }
 
-  private static parseHTML(html: string) {
+  private static parseHTML(html: string): StockData {
     const DOM = cheerio.load(html);
 
-    const headerInfo = DOM(`#quote-header-info`);
-    const marketNoticeNode = DOM(`#quote-market-notice`);
-    const leftTable = DOM(`${dataTest[1]}`);
-    const rightTable = DOM(`${dataTest[2]}`);
-    const fairValueNode = DOM(`#fr-val-mod`);
-    const chartEventNode = DOM(`#chrt-evts-mod`);
+    const headerInfo = DOM(DomIds.HEADER_INFO_ID);
+    const leftTable = DOM(DomIds.LEFT_SUMMARY_TABLE);
+    const rightTable = DOM(DomIds.RIGHT_SUMMARY_TABLE);
+
+    const marketNoticeNode = DOM(DomIds.MARKET_NOTICE_ID);
+    const fairValueNode = DOM(DomIds.FAIR_VALUE_ID);
+    const chartEventNode = DOM(DomIds.CHART_EVENT_ID);
 
     const getText = (dom: unknown, context: string) =>
       DOM(dom).find(context).text();
@@ -45,49 +47,54 @@ export class Scraper {
     ];
 
     // Left Table
+    const previousClosePrice = getText(leftTable, DomIds.PREV_CLOSE_VALUE);
 
-    const previousClosePrice = getText(leftTable, `${dataTest[3]}`);
+    const openPrice = getText(leftTable, DomIds.OPEN_VALUE);
 
-    const openPrice = getText(leftTable, `${dataTest[4]}`);
+    const bidPrice = getText(leftTable, DomIds.BID_VALUE);
 
-    const bidPrice = getText(leftTable, `${dataTest[5]}`);
+    const askPrice = getText(leftTable, DomIds.ASK_VALUE);
 
-    const askPrice = getText(leftTable, `${dataTest[6]}`);
+    const dayRange = getText(leftTable, DomIds.DAYS_RANGE_VALUE);
 
-    const dayRange = getText(leftTable, `${dataTest[7]}`);
+    const yearRange = getText(leftTable, DomIds.FIFTY_TWO_WK_RANGE);
 
-    const yearRange = getText(leftTable, `${dataTest[8]}`);
+    const volume = getText(leftTable, DomIds.TD_VOLUME_VALUE);
 
-    const volume = getText(leftTable, `${dataTest[9]}`);
-
-    const avgVolume = getText(leftTable, `${dataTest[10]}`);
+    const avgVolume = getText(leftTable, DomIds.AVERAGE_VOLUME_3MONTH_VALUE);
 
     // Right Table
+    const marketCap = getText(rightTable, DomIds.MARKET_CAP_VALUE);
 
-    const marketCap = getText(rightTable, `${dataTest[11]}`);
+    const fiveYearMonthly = getText(rightTable, DomIds.BETA_5Y_VALUE);
 
-    const fiveYearMonthly = getText(rightTable, `${dataTest[12]}`);
+    const peRatio = getText(rightTable, DomIds.PE_RATIO);
 
-    const peRatio = getText(rightTable, `${dataTest[13]}`);
+    const eps = getText(rightTable, DomIds.EPS_RATIO_VALUE);
 
-    const eps = getText(rightTable, `${dataTest[14]}`);
+    const earningsDate = getText(rightTable, DomIds.EARNINGS_DATE_VALUE);
 
-    const earningsDate = getText(rightTable, `${dataTest[15]}`);
+    const forwardDividendAndYield = getText(
+      rightTable,
+      DomIds.DIVIDEND_AND_YIELD_VALUE,
+    );
 
-    const forwardDividend = getText(rightTable, `${dataTest[16]}`);
+    const exDividendDate = getText(rightTable, DomIds.EX_DIVEND_DATE_VALUE);
 
-    const exDividendDate = getText(rightTable, `${dataTest[17]}`);
-
-    const oneYearTarget = getText(rightTable, `${dataTest[18]}`);
+    const oneYearTarget = getText(
+      rightTable,
+      DomIds.ONE_YEAR_TARGET_PRICE_VALUE,
+    );
 
     // Other Values
+    const fairValue = getText(fairValueNode, `div:contains('XX'):lt(1)`).split(
+      'XX',
+    )[2];
 
-    const fairValue = getText(fairValueNode, `div:contains('XX'):lt(1)`).split('XX')[2];
-
-    const patternDetectedNode = chartEventNode.find(`span:contains('pattern detected')`);
+    const patternDetectedNode = chartEventNode.find(
+      `span:contains('pattern detected')`,
+    );
     const chartEventValue = patternDetectedNode.prev().text();
-
-    // Stock Data
 
     const stockData: StockData = {
       name,
@@ -108,7 +115,7 @@ export class Scraper {
       peRatio,
       eps,
       earningsDate,
-      forwardDividend,
+      forwardDividendAndYield,
       exDividendDate,
       oneYearTarget,
       fairValue,
@@ -122,7 +129,6 @@ export class Scraper {
     try {
       logger.info(`Scraping HTML for stock symbol '${stockSymbol}'...`);
       const { data } = await this.client.get(`${this.BASE_URL}${stockSymbol}`);
-      // logger.info(data);
       return data;
     } catch (e: unknown) {
       logger.error(e);
