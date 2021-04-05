@@ -17,7 +17,7 @@ export interface StockData {
   peRatio: string;
   eps: string;
   earningsDate: string;
-  forwardDividend: string;
+  forwardDividendAndYield: string;
   exDividendDate: string;
   oneYearTarget: string;
   fairValue: string;
